@@ -3,10 +3,10 @@ package lab.stringtemplateloader;
 import org.joda.time.DateTime;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import javax.inject.Inject;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,10 +22,10 @@ public class FreemarkerManagerTest {
     public static final String TEMPLATE_NAME = "asdf";
     public static final DateTime LAST_MODIFIED = DateTime.parse("2013-12-29T00:39");
 
-    @Autowired
+    @Inject
     private TemplateProcessor target;
 
-    @Autowired
+    @Inject
     private TemplateRepository templateRepository;
 
     private Map<String, Object> model = new HashMap<String, Object>();
@@ -82,5 +82,12 @@ public class FreemarkerManagerTest {
         result = target.process("templateB", model);
 
         assertThat(result, is(equalTo("Content from A with content from B")));
+    }
+
+    @Test(expected = TemplateConfigurationException.class)
+    public void should_throw_TemplateConfigurationException_if_template_is_unprocessable() throws Exception {
+        templateRepository.putTemplate(TEMPLATE_NAME, "Content with ${badVariable}", LAST_MODIFIED);
+
+        result = target.process(TEMPLATE_NAME, model);
     }
 }

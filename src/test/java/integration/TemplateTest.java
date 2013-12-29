@@ -58,6 +58,13 @@ public class TemplateTest {
         assertThat(processed, is(equalTo("a template replaced weeee")));
     }
 
+    @Test(expected = TemplateException.class)
+    public void template_cant_include_other_template() throws IOException, TemplateException {
+        template = new Template("asdf", "<#include 'templateA'> with content from B", configuration);
+
+        process(template, model);
+    }
+
     private String process(Template template, Object dataModel) throws IOException, TemplateException {
         StringWriter stringWriter = new StringWriter();
 

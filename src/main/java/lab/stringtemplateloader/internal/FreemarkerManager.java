@@ -5,6 +5,7 @@ import freemarker.cache.StringTemplateLoader;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
+import lab.stringtemplateloader.TemplateConfigurationException;
 import lab.stringtemplateloader.TemplateRepository;
 import lab.stringtemplateloader.TemplateProcessor;
 import org.joda.time.ReadableInstant;
@@ -35,7 +36,7 @@ public class FreemarkerManager implements TemplateRepository, TemplateProcessor 
         try {
             template = configuration.getTemplate(templateName);
         } catch (IOException e) {
-            throw new IllegalStateException("Unable to get template with name " + templateName, e);
+            throw new TemplateConfigurationException("Unable to get template with name " + templateName, e);
         }
         return template;
     }
@@ -45,9 +46,9 @@ public class FreemarkerManager implements TemplateRepository, TemplateProcessor 
         try {
             template.process(model, stringWriter);
         } catch (TemplateException e) {
-            throw new IllegalStateException("Unable to process template with name " + template.getName(), e);
+            throw new TemplateConfigurationException("Unable to process template with name " + template.getName(), e);
         } catch (IOException e) {
-            throw new IllegalStateException("Unable to process template with name " + template.getName(), e);
+            throw new TemplateConfigurationException("Unable to process template with name " + template.getName(), e);
         }
         return stringWriter.toString();
     }
