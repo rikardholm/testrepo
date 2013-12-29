@@ -6,20 +6,20 @@ import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import lab.stringtemplateloader.TemplateConfigurationException;
-import lab.stringtemplateloader.TemplateRepository;
 import lab.stringtemplateloader.TemplateProcessor;
+import lab.stringtemplateloader.TemplateRepository;
 import org.joda.time.ReadableInstant;
 
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.Map;
 
-public class FreemarkerManager implements TemplateRepository, TemplateProcessor {
+public class FreemarkerTemplateProcessor implements TemplateRepository, TemplateProcessor {
 
     private Configuration configuration;
     private StringTemplateLoader stringTemplateLoader;
 
-    public FreemarkerManager(Configuration configuration, StringTemplateLoader stringTemplateLoader) {
+    public FreemarkerTemplateProcessor(Configuration configuration, StringTemplateLoader stringTemplateLoader) {
         this.configuration = configuration;
         this.stringTemplateLoader = stringTemplateLoader;
     }
