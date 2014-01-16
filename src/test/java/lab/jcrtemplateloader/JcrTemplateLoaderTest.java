@@ -3,14 +3,14 @@ package lab.jcrtemplateloader;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import test.JcrSessionTestRule;
 
 import javax.inject.Inject;
 import javax.jcr.*;
@@ -24,6 +24,7 @@ import static org.hamcrest.Matchers.is;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration
+@TestExecutionListeners
 public class JcrTemplateLoaderTest {
     private static Logger logger = LoggerFactory.getLogger(JcrTemplateLoaderTest.class);
 
@@ -33,21 +34,22 @@ public class JcrTemplateLoaderTest {
     @Inject
     private Repository repository;
 
-    private Session session;
+    @Rule
+    public JcrSessionTestRule jcrSessionTestRule = new JcrSessionTestRule(repository);
+
     private final Map<String,String> model = new HashMap<String, String>();
+    private Session session;
 
     @Before
     public void setUp() throws Exception {
-        session = repository.login(new SimpleCredentials("admin","admin".toCharArray()));
+        session = login(repository);
 
-        configuration.setLocalizedLookup(false);
-
-        fillRepository();
+        fillRepository(session);
     }
 
     @After
     public void tearDown() throws Exception {
-        session.getRootNode().getNode("templates").remove();
+        session.getNode("/templates").remove();
         session.save();
         session.logout();
     }
@@ -62,7 +64,7 @@ public class JcrTemplateLoaderTest {
 
         Template template = configuration.getTemplate("templates/simple/content");
 
-        String processed = process(model, template);
+        String processed = process(template, model);
 
         assertThat(processed, is("This is a replaced template"));
     }
@@ -71,12 +73,12 @@ public class JcrTemplateLoaderTest {
     public void should_include_a_header() throws Exception {
         Template template = configuration.getTemplate("templates/including/content");
 
-        String processed = process(model, template);
+        String processed = process(template, model);
 
         assertThat(processed, is("This is the header. Should have the header."));
     }
 
-    private void fillRepository() throws RepositoryException {
+    private void fillRepository(Session session) throws RepositoryException {
         Node rootNode = session.getRootNode();
 
         rootNode.addNode("templates");
@@ -94,8 +96,7 @@ public class JcrTemplateLoaderTest {
         session.save();
     }
 
-
-    private String process(Map<String, String> model, Template template) throws TemplateException, IOException {
+    private String process(Template template, Map<String, String> model) throws TemplateException, IOException {
         StringWriter stringWriter = new StringWriter();
 
         template.process(model, stringWriter);
@@ -104,5 +105,9 @@ public class JcrTemplateLoaderTest {
 
         logger.info("Output: {}", processed);
         return processed;
+    }
+
+    private Session login(Repository repository) throws RepositoryException {
+        return repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
     }
 }

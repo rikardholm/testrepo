@@ -20,47 +20,58 @@ public class JcrTemplateLoader implements TemplateLoader {
 
     @Override
     public Object findTemplateSource(String name) throws IOException {
-        Session session;
-        try {
-            session = repository.login();
-        } catch (RepositoryException e) {
-            throw new IOException(e);
-        }
+        Session session = login();
 
         try {
-            if (!session.propertyExists("/" + name)) {
-                logger.warn("Path does not exist: {}", "/" + name);
+            String absolutePath = "/" + name;
+
+            if (!session.propertyExists(absolutePath)) {
+                logger.warn("Path does not exist: {}", absolutePath);
                 return null;
             }
-        } catch (RepositoryException e) {
-            session.logout();
-            throw new IOException(e);
-        }
 
-        Property property;
-        try {
-            property = session.getProperty("/" + name);
+            return absolutePath;
         } catch (RepositoryException e) {
-            session.logout();
             throw new IOException(e);
+        } finally {
+            session.logout();
         }
-
-        return property;
     }
 
     @Override
     public long getLastModified(Object templateSource) {
-        Property property = property(templateSource);
+        String path = (String) templateSource;
+
+        Session session;
+        try {
+            session = login();
+        } catch (IOException e) {
+            logger.info("Could not login", e);
+            return -1;
+        }
+
+        Property property;
+        try {
+            property = session.getProperty(path);
+        } catch (RepositoryException e) {
+            logger.info("Could not get property " + templateSource, e);
+            session.logout();
+            return -1;
+        }
 
         try {
             Node node = property.getParent();
+
+            if (!node.hasProperty("jcr:lastModified")) {
+                logger.warn("Node does not have property jcr:lastModified. Path: {}", node.getPath());
+                return -1;
+            }
+
             return node.getProperty("jcr:lastModified").getDate().getTimeInMillis();
         } catch (RepositoryException e) {
-            try {
-                logger.debug("Could not get jcr:lastModified of " + property.getParent().getPath(), e);
-            } catch (RepositoryException e1) {
-                logger.debug("Could not get path of node", e1);
-            }
+            logger.info("Could not get jcr:lastModified of " + path, e);
+        } finally {
+            session.logout();
         }
 
         return -1;
@@ -68,25 +79,30 @@ public class JcrTemplateLoader implements TemplateLoader {
 
     @Override
     public Reader getReader(Object templateSource, String encoding) throws IOException {
+        String path = (String) templateSource;
+
+        Session session = login();
+
         try {
-            return new StringReader(property(templateSource).getString());
+            return new StringReader(session.getProperty(path).getString());
         } catch (RepositoryException e) {
             throw new IOException(e);
+        } finally {
+            session.logout();
         }
     }
 
     @Override
     public void closeTemplateSource(Object templateSource) throws IOException {
-        Property property = property(templateSource);
-
-        try {
-            property.getSession().logout();
-        } catch (RepositoryException e) {
-            logger.warn("Could not close session.", e);
-        }
     }
 
-    private Property property(Object templateSource) {
-        return (Property) templateSource;
+    private Session login() throws IOException {
+        Session session;
+        try {
+            session = repository.login();
+        } catch (RepositoryException e) {
+            throw new IOException(e);
+        }
+        return session;
     }
 }
